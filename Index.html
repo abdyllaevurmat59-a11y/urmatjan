@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Игровой Центр 🎮</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #3a6186, #89253e);
+    color: #fff;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 { margin-top: 20px; }
+  .menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin: 30px;
+  }
+
+  .game-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    padding: 15px 25px;
+    font-size: 18px;
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  .game-btn:hover { background: rgba(255,255,255,0.4); }
+
+  canvas, #gameArea {
+    display: none;
+    margin: 20px auto;
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    padding: 10px;
+    max-width: 400px;
+  }
+
+  #backBtn {
+    display: none;
+    background: crimson;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+  <h1>🎮 Игровой Центр</h1>
+
+  <div class="menu" id="menu">
+    <button class="game-btn" onclick="openGame('ticTacToe')">Крестики-нолики</button>
+    <button class="game-btn" onclick="openGame('snake')">Змейка</button>
+    <button class="game-btn" onclick="openGame('guess')">Угадай число</button>
+    <button class="game-btn" onclick="openGame('clicker')">Кликер</button>
+    <button class="game-btn" onclick="openGame('memory')">Память</button>
+    <button class="game-btn" onclick="openGame('pong')">Пинг-понг</button>
+  </div>
+
+  <div id="gameArea"></div>
+  <button id="backBtn" onclick="goBack()">Назад в меню</button>
+
+<script>
+const menu = document.getElementById('menu');
+const gameArea = document.getElementById('gameArea');
+const backBtn = document.getElementById('backBtn');
+
+function openGame(game) {
+  menu.style.display = 'none';
+  backBtn.style.display = 'inline-block';
+  gameArea.style.display = 'block';
+
+  if (game === 'ticTacToe') ticTacToe();
+  if (game === 'snake') snake();
+  if (game === 'guess') guessNumber();
+  if (game === 'clicker') clicker();
+  if (game === 'memory') memoryGame();
+  if (game === 'pong') pong();
+}
+
+function goBack() {
+  location.reload();
+}
+
+/* === 1. Крестики-нолики === */
+function ticTacToe() {
+  gameArea.innerHTML = `
+    <h2>Крестики-нолики</h2>
+    <div id="board" style="display:grid;grid-template-columns:repeat(3,100px);gap:5px;justify-content:center;"></div>
+    <p id="status"></p>
+  `;
+  let board = document.getElementById('board');
+  let cells = Array(9).fill(null);
+  let turn = 'X';
+  for (let i=0;i<9;i++){
+    let btn = document.createElement('button');
+    btn.style.width='100px';
+    btn.style.height='100px';
+    btn.style.fontSize='36px';
+    btn.onclick=()=>{
+      if(!cells[i]){
+        cells[i]=turn;
+        btn.innerText=turn;
+        if(checkWin(cells,turn)){ document.getElementById('status').innerText=turn+" победил!"; board.querySelectorAll('button').forEach(b=>b.disabled=true);}
+        turn = turn==='X'?'O':'X';
+      }
+    }
+    board.appendChild(btn);
+  }
+  function checkWin(c,t){const w=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];return w.some(p=>p.every(i=>cells[i]==t));}
+}
+
+/* === 2. Змейка === */
+function snake(){
+  gameArea.innerHTML = `<h2>Змейка</h2><canvas id="snakeGame" width="400" height="400"></canvas>`;
+  const cvs=document.getElementById('snakeGame');
+  const ctx=cvs.getContext('2d');
+  const box=20;
+  let snake=[{x:9*box,y:10*box}];
+  let food={x:Math.floor(Math.random()*19)*box,y:Math.floor(Math.random()*19)*box};
+  let dir;
+  document.addEventListener("keydown",e=>{
+    if(e.key=="ArrowLeft"&&dir!=="RIGHT")dir="LEFT";
+    else if(e.key=="ArrowUp"&&dir!=="DOWN")dir="UP";
+    else if(e.key=="ArrowRight"&&dir!=="LEFT")dir="RIGHT";
+    else if(e.key=="ArrowDown"&&dir!=="UP")dir="DOWN";
+  });
+  function draw(){
+    ctx.fillStyle="#111";
+    ctx.fillRect(0,0,400,400);
+    for(let i=0;i<snake.length;i++){
+      ctx.fillStyle=(i==0)?"lime":"white";
+      ctx.fillRect(snake[i].x,snake[i].y,box,box);
+    }
+    ctx.fillStyle="red";
+    ctx.fillRect(food.x,food.y,box,box);
+    let head={x:snake[0].x,y:snake[0].y};
+    if(dir==="LEFT")head.x-=box;
+    if(dir==="UP")head.y-=box;
+    if(dir==="RIGHT")head.x+=box;
+    if(dir==="DOWN")head.y+=box;
+    if(head.x===food.x&&head.y===food.y){food={x:Math.floor(Math.random()*19)*box,y:Math.floor(Math.random()*19)*box};}
+    else snake.pop();
+    if(head.x<0||head.x>=400||head.y<0||head.y>=400||collision(head,snake)){
+      clearInterval(game);
+      alert("Игра окончена!");
+    }
+    snake.unshift(head);
+  }
+  function collision(h,a){return a.some(s=>s.x===h.x&&s.y===h.y);}
+  let game=setInterval(draw,100);
+}
+
+/* === 3. Угадай число === */
+function guessNumber(){
+  gameArea.innerHTML=`<h2>Угадай число (1–100)</h2>
+  <input type="number" id="num"><button onclick="checkGuess()">Проверить</button>
+  <p id="result"></p>`;
+  const secret=Math.floor(Math.random()*100)+1;
+  window.checkGuess=()=>{
+    const n=document.getElementById('num').value;
+    if(n==secret)document.getElementById('result').innerText="Правильно!";
+    else if(n<secret)document.getElementById('result').innerText="Больше!";
+    else document.getElementById('result').innerText="Меньше!";
+  };
+}
+
+/* === 4. Кликер === */
+function clicker(){
+  gameArea.innerHTML=`<h2>Кликер</h2>
+  <button id="clickBtn" style="font-size:24px;padding:20px;">Кликни!</button>
+  <p>Очки: <span id="score">0</span></p>`;
+  let score=0;
+  document.getElementById('clickBtn').onclick=()=>{
+    score++;
+    document.getElementById('score').innerText=score;
+  };
+}
+
+/* === 5. Игра Память === */
+function memoryGame(){
+  const symbols=['🍎','🍎','🍋','🍋','🍇','🍇','🍓','🍓'];
+  symbols.sort(()=>0.5-Math.random());
+  gameArea.innerHTML=`<h2>Память</h2><div id="grid" style="display:grid;grid-template-columns:repeat(4,80px);gap:10px;justify-content:center;"></div>`;
+  const grid=document.getElementById('grid');
+  let opened=[];
+  symbols.forEach(sym=>{
+    const card=document.createElement('button');
+    card.textContent='❓';
+    card.style.fontSize='24px';
+    card.onclick=()=>{
+      if(opened.length<2 && card.textContent==='❓'){
+        card.textContent=sym;
+        opened.push(card);
+        if(opened.length===2){
+          if(opened[0].textContent===opened[1].textContent){
+            opened=[];
+          }else{
+            setTimeout(()=>{
+              opened.forEach(c=>c.textContent='❓');
+              opened=[];
+            },800);
+          }
+        }
+      }
+    };
+    grid.appendChild(card);
+  });
+}
+
+/* === 6. Пинг-понг === */
+function pong(){
+  gameArea.innerHTML=`<h2>Пинг-понг</h2><canvas id="pong" width="400" height="300"></canvas>`;
+  const c=document.getElementById('pong');
+  const ctx=c.getContext('2d');
+  let paddle={x:175,y:270,w:50,h:10};
+  let ball={x:200,y:150,dx:2,dy:2,r:8};
+  document.addEventListener('mousemove',e=>{
+    let rect=c.getBoundingClientRect();
+    paddle.x=e.clientX-rect.left-paddle.w/2;
+  });
+  function draw(){
+    ctx.clearRect(0,0,400,300);
+    ctx.fillStyle='white';
+    ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
+    ctx.beginPath();
+    ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+    ctx.fill();
+    ball.x+=ball.dx;
+    ball.y+=ball.dy;
+    if(ball.x<0||ball.x>400)ball.dx*=-1;
+    if(ball.y<0)ball.dy*=-1;
+    if(ball.y>300){alert('Ты проиграл!');location.reload();}
+    if(ball.x>paddle.x&&ball.x<paddle.x+paddle.w&&ball.y+ball.r>paddle.y){
+      ball.dy*=-1;
+    }
+  }
+  setInterval(draw,10);
+}
+</script>
+</body>
+</html>
